@@ -68,11 +68,11 @@ ipcMain.handle("version", (evt, arg) => {
 })
 
 
-ipcMain.handle("fetch-file", async (event, path, init) => {
-  console.log(path, init);
+ipcMain.handle("fetch-file", async (event, filePath, init) => {
+  filePath = path.join(filePath)
 
   return new Promise((resolve, reject) => {
-    ipcInfo("fetch-file", `read ${path}`);
+    ipcInfo("fetch-file", `read ${filePath}`);
     if (init) {
       let headers = init['headers'];
       let range = headers['Range'];
@@ -80,18 +80,19 @@ ipcMain.handle("fetch-file", async (event, path, init) => {
       let start = parseInt(match[1]);
       let end = parseInt(match[2]);
 
-      let buff;
-      const fileStream = fs.createReadStream(path, {start, end});
+      let chunks = []
+      const fileStream = fs.createReadStream(filePath, {start, end});
       fileStream.on('data', (chunk)=>{
-        buff = chunk;
+        chunks.push(chunk)
       })
       fileStream.on('end', () => {
-        ipcInfo('fetch-file', `read ${path} from ${start} to ${end}, size: ${buff.length}`);
-        resolve(buff);
+        let buffer = Buffer.concat(chunks)
+        ipcInfo('fetch-file', `read ${filePath} from ${start} to ${end}, size: ${buffer.length}`);
+        resolve(buffer);
       })
     }
     else {
-      fs.readFile(path, 'utf-8', (err, data) => {
+      fs.readFile(filePath, 'utf-8', (err, data) => {
         resolve(data);
       })
     }
