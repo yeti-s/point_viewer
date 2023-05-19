@@ -51,7 +51,8 @@ app.get('/file', (req, res) => {
         fileStream.on('end', () => {
             let buffer = Buffer.concat(chunks);
             logInfo(`read ${filePath} from ${start} to ${end}, size: ${buffer.length}`);
-            res.send(buffer);
+            res.writeHead(200, { 'Content-Length': buffer.length })
+            res.end(buffer, 'binary');
         })
     }
     else {
