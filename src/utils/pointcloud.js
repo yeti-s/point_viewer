@@ -9,6 +9,9 @@ const REF = {
 };
 
 // EVENT NAME
+
+const SET_POINT_SIZE = "set_point_size";
+
 const ADD_POINTCLOUD = "add_pointcloud";
 const REMOVE_POINTCLOUD= "remove_pointcloud";
 // const REMOVE_POINTCLOUDS = "remove_pointclouds";
@@ -47,6 +50,7 @@ export const init = id => {
     REF.isInit = true;
     REF.rendererId = id;
     REF.viewer = viewer;
+    REF.pointSize = 1.0;
 
     const pointclouds = {};
     const volumes = {};
@@ -60,13 +64,20 @@ export const init = id => {
     MANAGER.register(ADD_POINTCLOUD, (pcd) => {
         const uuid = pcd.uuid;
         
-        const eventId = MANAGER.register(REMOVE_POINTCLOUD, (id) => {
+        const setPointSizeEventId = MANAGER.register(SET_POINT_SIZE, () => {
+            pcd.material.size = REF.pointSize;
+        })
+
+        const removeEventId = MANAGER.register(REMOVE_POINTCLOUD, (id) => {
             if (id !== uuid) return;
+
+            MANAGER.unregister(setPointSizeEventId);
+            MANAGER.unregister(removeEventId);
             pcdScene.remove(pcd);
             delete pointclouds[uuid];
-            MANAGER.unregister(eventId);
         });
         
+        pcd.material.size = REF.pointSize;
         pointclouds[uuid] = pcd;
         viewer.scene.addPointCloud(pcd);
         viewer.zoomTo(pcd);
@@ -133,4 +144,16 @@ export const removeClippingVolume = (id) => {
 // NONE 0, HIGHLIGHT 1, INSIDE 2, OUTSIDE 3
 export const setClipTask = (task) => {
     MANAGER.notify(SET_CLIP_TASK, task);
+}
+
+
+export const getPointSize = (size) => {
+    size = REF.pointSize;
+    if (size) return size;
+    return 1;
+}
+
+export const setPointSize = (size) => {
+    REF.pointSize = size;
+    MANAGER.notify(SET_POINT_SIZE);
 }
