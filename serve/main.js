@@ -1,11 +1,14 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const cors = require('cors');
 const app = express();
 
 const PORT = 10001;
 
 let numMessages = 0;
+
+app.use(cors());
 
 app.get('/file', (req, res) => {
     let id = numMessages++;
@@ -60,8 +63,10 @@ app.get('/file', (req, res) => {
             res.send(data);
         })
     }
+})
 
-
+app.get('/', (req, res) => {
+    res.send("hello");
 })
 
 app.listen(PORT, () => {
