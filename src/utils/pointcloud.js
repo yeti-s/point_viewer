@@ -11,11 +11,27 @@ const REF = {
 // EVENT NAME
 const ADD_POINTCLOUD = "add_pointcloud";
 const REMOVE_POINTCLOUD= "remove_pointcloud";
-// const REMOVE_POINTCLOUD_ALL = "remove_pointcloud_all";
+// const REMOVE_POINTCLOUDS = "remove_pointclouds";
+
+const ADD_CLIPPING_VOLUME = "add_clipping_volume";
+const REMOVE_CLIPPING_VOLUME = "remove_clipping_volume";
+const REMOVE_CLIPPING_VOLUMES = "remove_clipping_volumes";
+const SET_CLIP_TASK = "set_clip_task";
+
+
+
+
+// const
+export const CLIPTASK = {
+    NONE: 0,
+    HIGHLIGHT: 1,
+    INSIDE: 2,
+    OUTSIDE: 3
+};
 
 
 const isInit = () => REF.isInit;
-
+const getViewer = () => REF.viewer;
 
 export const init = id => {
     if (isInit()) return;
@@ -30,12 +46,17 @@ export const init = id => {
 
     REF.isInit = true;
     REF.rendererId = id;
+    REF.viewer = viewer;
+
     const pointclouds = {};
-    const scene = viewer.measuringTool.scene;
+    const volumes = {};
+    const scene = viewer.scene;
+    const msScene = viewer.measuringTool.scene;
     const pcdScene = viewer.scene.scenePointCloud;
     const view = viewer.scene.view;
 
 
+    // pointcloud
     MANAGER.register(ADD_POINTCLOUD, (pcd) => {
         const uuid = pcd.uuid;
         
@@ -44,11 +65,29 @@ export const init = id => {
             pcdScene.remove(pcd);
             delete pointclouds[uuid];
             MANAGER.unregister(eventId);
-        })
+        });
         
         pointclouds[uuid] = pcd;
         viewer.scene.addPointCloud(pcd);
         viewer.zoomTo(pcd);
+    })
+
+    // clipping tools
+    MANAGER.register(ADD_CLIPPING_VOLUME, (volume) => {
+        const uuid = volume.uuid;
+        
+        const eventId = MANAGER.register(REMOVE_CLIPPING_VOLUME, id => {
+            if (id !== uuid) return;
+            scene.removeVolume(volumes[uuid]);
+            delete volumes[uuid];
+            MANAGER.unregister(eventId);
+        });
+
+        volumes[uuid] = volume;
+    })
+
+    MANAGER.register(SET_CLIP_TASK, (task) => {
+        viewer.setClipTask(task);
     })
 }
 
@@ -58,6 +97,9 @@ export const init = id => {
 //     for (let i = children.length - 1; i >= 0; i--)
 //         rendererDom.remove(children[i])
 
+//     for (let key in REF) {
+//         delete REF[key];
+//     }
 //     REF.isInit = false;
 //     MANAGER.reset();
 // }
@@ -74,4 +116,21 @@ export const loadPointCloud = (path, name = "noname") => {
 
 export const removePointcloud = (id) => {
     MANAGER.notify(REMOVE_POINTCLOUD, id);
+}
+
+
+export const addClippingVolume = () => {
+    const volume = getViewer().volumeTool.startInsertion({clip: true});
+    MANAGER.notify(ADD_CLIPPING_VOLUME, volume);
+    return volume.uuid;
+}
+
+export const removeClippingVolume = (id) => {
+    MANAGER.notify(REMOVE_CLIPPING_VOLUME, id);
+}
+
+
+// NONE 0, HIGHLIGHT 1, INSIDE 2, OUTSIDE 3
+export const setClipTask = (task) => {
+    MANAGER.notify(SET_CLIP_TASK, task);
 }
