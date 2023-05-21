@@ -24,9 +24,10 @@ const styles = {
 
 export default function PotreeContorller() {
     const [clip, setClip] = useState(false);
+    const [path, setPath] = useState("");
 
     const load = () => {
-        loadPointCloud("http://localhost:10001/file?path=C:/Users/yeti/Documents/github/data/paris/metadata.json");
+        loadPointCloud(`http://localhost:10001/file?path=${path}`);
     }
 
     const toggleClip = () => {
@@ -62,10 +63,15 @@ export default function PotreeContorller() {
         console.log("matrix", getVolumeMatrix(clip));
     }
 
+    const testChange = (event) => {
+        setPath(event.target.value);
+    }
+
     return (
         <div style={styles.controllerContainer}>
             <SliderWithText text="point size" min={0.1} max={10} step={0.1} defaultValue={getPointSize()} onChange={onPointSizeChange} />
             <SliderWithText text="intensity" min={0} max={255} step={1} defaultValue={0} onChange={onIntesityChange} />
+            <input onChange={testChange}/>
             <button onClick={load}>load</button>
             <button onClick={toggleClip}>{clip ? "unclip" : "clip"}</button>
             <button onClick={inside}>inside</button>
