@@ -1,5 +1,15 @@
 import React, { useState } from "react";
-import { loadPointCloud, addClippingVolume, removeClippingVolume, setClipTask, CLIPTASK, setPointSize, getPointSize, setIntensityThreshold} from "src/utils/pointcloud";
+import { 
+    loadPointCloud, 
+    addClippingVolume, 
+    removeClippingVolume, 
+    setClipTask, 
+    CLIPTASK, 
+    setPointSize, 
+    getPointSize, 
+    setIntensityThreshold,
+    getVolumeMatrix
+} from "src/utils/pointcloud";
 import SliderWithText from "src/components/slider/SliderWithText";
 
 const styles = {
@@ -48,6 +58,10 @@ export default function PotreeContorller() {
         setIntensityThreshold(value);
     }
 
+    const getMatrix = () => {
+        console.log("matrix", getVolumeMatrix(clip));
+    }
+
     return (
         <div style={styles.controllerContainer}>
             <SliderWithText text="point size" min={0.1} max={10} step={0.1} defaultValue={getPointSize()} onChange={onPointSizeChange} />
@@ -56,6 +70,7 @@ export default function PotreeContorller() {
             <button onClick={toggleClip}>{clip ? "unclip" : "clip"}</button>
             <button onClick={inside}>inside</button>
             <button onClick={highlight}>highlight</button>
+            <button onClick={getMatrix}>matrix</button>
         </div>
     )
 }
