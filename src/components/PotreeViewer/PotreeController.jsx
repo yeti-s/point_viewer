@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { loadPointCloud, addClippingVolume, removeClippingVolume, setClipTask, CLIPTASK, setPointSize, getPointSize} from "src/utils/pointcloud";
+import { loadPointCloud, addClippingVolume, removeClippingVolume, setClipTask, CLIPTASK, setPointSize, getPointSize, setIntensityThreshold} from "src/utils/pointcloud";
 import SliderWithText from "src/components/slider/SliderWithText";
 
 const styles = {
@@ -16,7 +16,7 @@ export default function PotreeContorller() {
     const [clip, setClip] = useState(false);
 
     const load = () => {
-        loadPointCloud("/file?path=C:/Users/yeti/Documents/github/data/test_potree/metadata.json");
+        loadPointCloud("http://localhost:10001/file?path=C:/Users/yeti/Documents/github/data/paris/metadata.json");
     }
 
     const toggleClip = () => {
@@ -43,9 +43,15 @@ export default function PotreeContorller() {
         setPointSize(value);
     }
 
+    const onIntesityChange = (event) => {
+        let value = event.target.value;
+        setIntensityThreshold(value);
+    }
+
     return (
         <div style={styles.controllerContainer}>
             <SliderWithText text="point size" min={0.1} max={10} step={0.1} defaultValue={getPointSize()} onChange={onPointSizeChange} />
+            <SliderWithText text="intensity" min={0} max={255} step={1} defaultValue={0} onChange={onIntesityChange} />
             <button onClick={load}>load</button>
             <button onClick={toggleClip}>{clip ? "unclip" : "clip"}</button>
             <button onClick={inside}>inside</button>

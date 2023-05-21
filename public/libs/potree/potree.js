@@ -57610,6 +57610,7 @@ uniform vec2 uFilterPointSourceIDClipRange;
 uniform vec2 uFilterGPSTimeClipRange;
 uniform float uGpsScale;
 uniform float uGpsOffset;
+uniform float uFilterIntensity;
 
 uniform vec2 uNormalizedGpsBufferRange;
 
@@ -58309,6 +58310,17 @@ void doClipping(){
 		if(time < range.x || time > range.y){
 			gl_Position = vec4(100.0, 100.0, 100.0, 0.0);
 			
+			return;
+		}
+	}
+	#endif
+
+	#if defined(clip_intensity_enabled)
+	{ // intensity filter
+		float threshold = uFilterIntensity;
+		
+		if (intensity < threshold) {
+			gl_Position = vec4(100.0, 100.0, 100.0, 0.0);
 			return;
 		}
 	}
@@ -59198,6 +59210,7 @@ void main() {
 				uFilterReturnNumberRange:		{ type: "fv", value: [0, 7]},
 				uFilterNumberOfReturnsRange:	{ type: "fv", value: [0, 7]},
 				uFilterGPSTimeClipRange:		{ type: "fv", value: [0, 7]},
+				uFilterIntensity:				{ type: "f", value: 0},
 				uFilterPointSourceIDClipRange:		{ type: "fv", value: [0, 65535]},
 				matcapTextureUniform: 	{ type: "t", value: this.matcapTexture },
 				backfaceCulling: { type: "b", value: false },
@@ -60936,6 +60949,7 @@ void main() {
 				pickMaterial.uniforms.uFilterReturnNumberRange.value = this.material.uniforms.uFilterReturnNumberRange.value;
 				pickMaterial.uniforms.uFilterNumberOfReturnsRange.value = this.material.uniforms.uFilterNumberOfReturnsRange.value;
 				pickMaterial.uniforms.uFilterGPSTimeClipRange.value = this.material.uniforms.uFilterGPSTimeClipRange.value;
+				pickMaterial.uniforms.uFilterIntensity.value = this.material.uniforms.uFilterIntensity.value;
 				pickMaterial.uniforms.uFilterPointSourceIDClipRange.value = this.material.uniforms.uFilterPointSourceIDClipRange.value;
 
 				pickMaterial.activeAttributeName = "indices";
@@ -63275,12 +63289,13 @@ void main() {
 				}
 
 				{
+					let uFilterIntensity = material.uniforms.uFilterIntensity.value;
 					let uFilterReturnNumberRange = material.uniforms.uFilterReturnNumberRange.value;
 					let uFilterNumberOfReturnsRange = material.uniforms.uFilterNumberOfReturnsRange.value;
 					let uFilterPointSourceIDClipRange = material.uniforms.uFilterPointSourceIDClipRange.value;
 					
 					
-					
+					shader.setUniform1f("uFilterIntensity", uFilterIntensity);
 					shader.setUniform2f("uFilterReturnNumberRange", uFilterReturnNumberRange);
 					shader.setUniform2f("uFilterNumberOfReturnsRange", uFilterNumberOfReturnsRange);
 					shader.setUniform2f("uFilterPointSourceIDClipRange", uFilterPointSourceIDClipRange);
@@ -63470,6 +63485,10 @@ void main() {
 
 						if(attributes["gps-time"]){
 							defines.push("#define clip_gps_enabled");
+						}
+
+						if(attributes["intensity"]){
+							defines.push("#define clip_intensity_enabled");
 						}
 
 						if(attributes["return number"]){
@@ -70856,6 +70875,7 @@ void main() {
 					depthMaterial.uniforms.uFilterReturnNumberRange.value = material.uniforms.uFilterReturnNumberRange.value;
 					depthMaterial.uniforms.uFilterNumberOfReturnsRange.value = material.uniforms.uFilterNumberOfReturnsRange.value;
 					depthMaterial.uniforms.uFilterGPSTimeClipRange.value = material.uniforms.uFilterGPSTimeClipRange.value;
+					depthMaterial.uniforms.uFilterIntensity.value = material.uniforms.uFilterIntensity.value;
 					depthMaterial.uniforms.uFilterPointSourceIDClipRange.value = material.uniforms.uFilterPointSourceIDClipRange.value;
 
 					depthMaterial.clipTask = material.clipTask;
@@ -70899,6 +70919,7 @@ void main() {
 					attributeMaterial.uniforms.uFilterReturnNumberRange.value = material.uniforms.uFilterReturnNumberRange.value;
 					attributeMaterial.uniforms.uFilterNumberOfReturnsRange.value = material.uniforms.uFilterNumberOfReturnsRange.value;
 					attributeMaterial.uniforms.uFilterGPSTimeClipRange.value = material.uniforms.uFilterGPSTimeClipRange.value;
+					attributeMaterial.uniforms.uFilterIntensity.value = material.uniforms.uFilterIntensity.value;
 					attributeMaterial.uniforms.uFilterPointSourceIDClipRange.value = material.uniforms.uFilterPointSourceIDClipRange.value;
 
 					attributeMaterial.elevationGradientRepeat = material.elevationGradientRepeat;
@@ -80084,6 +80105,7 @@ ENDSEC
 			this.initClassificationList();
 			this.initReturnFilters();
 			this.initGPSTimeFilters();
+			this.initIntensityFilters();
 			this.initPointSourceIDFilters();
 
 		}
@@ -80214,6 +80236,41 @@ ENDSEC
 				});
 			}
 
+		}
+
+		initIntensityFilters() {
+			let elIntensityFilterPanel = $('#intensity_filter_panel');
+			
+			{
+				let slider = new HierarchicalSlider({
+					levels: 4,
+					range: [0, 255],
+					precision: 1,
+					slide: (event) => {
+						let values = event.values;
+						this.viewer.setFilterIntensity(values[0]);
+					}
+				});
+
+				let initialized = false;
+
+				let initialize = () => {
+					elIntensityFilterPanel[0].prepend(slider.element);
+
+					initialized = true;
+				};
+
+				this.viewer.addEventListener("update", (e) => {
+					let extent = this.viewer.filterIntensity;
+
+					if(!initialized){
+						initialize();
+
+						// slider.setValues(extent);
+					}
+					
+				});
+			}
 		}
 
 		initPointSourceIDFilters() {
@@ -80442,7 +80499,8 @@ ENDSEC
 				["ES", "es"],
 				["SE", "se"],
 				["ZH", "zh"],
-				["IT", "it"]
+				["IT", "it"],
+				["CA", "ca"]
 			];
 
 			let elLanguages = $('#potree_languages');
@@ -88121,6 +88179,7 @@ ENDSEC
 			this.filterReturnNumberRange = [0, 7];
 			this.filterNumberOfReturnsRange = [0, 7];
 			this.filterGPSTimeRange = [-Infinity, Infinity];
+			this.filterIntensity = 0;
 			this.filterPointSourceIDRange = [0, 65535];
 
 			this.potreeRenderer = null;
@@ -88700,6 +88759,11 @@ ENDSEC
 			this.dispatchEvent({'type': 'filter_gps_time_range_changed', 'viewer': this});
 		}
 
+		setFilterIntensity(value){
+			this.filterIntensity = value;
+			this.dispatchEvent({'type': 'filter_intensity_changed', 'viewer': this});
+		}
+
 		setFilterPointSourceIDRange(from, to){
 			this.filterPointSourceIDRange = [from, to];
 			this.dispatchEvent({'type': 'filter_point_source_id_range_changed', 'viewer': this});
@@ -89234,7 +89298,7 @@ ENDSEC
 				i18n.init({
 					lng: 'en',
 					resGetPath: Potree.resourcePath + '/lang/__lng__/__ns__.json',
-					preload: ['en', 'fr', 'de', 'jp', 'se', 'es', 'zh', 'it'],
+					preload: ['en', 'fr', 'de', 'jp', 'se', 'es', 'zh', 'it','ca'],
 					getAsync: true,
 					debug: false
 				}, function (t) {
@@ -89608,6 +89672,7 @@ ENDSEC
 				material.uniforms.uFilterReturnNumberRange.value = this.filterReturnNumberRange;
 				material.uniforms.uFilterNumberOfReturnsRange.value = this.filterNumberOfReturnsRange;
 				material.uniforms.uFilterGPSTimeClipRange.value = this.filterGPSTimeRange;
+				material.uniforms.uFilterIntensity.value = this.filterIntensity;
 				material.uniforms.uFilterPointSourceIDClipRange.value = this.filterPointSourceIDRange;
 
 				material.classification = this.classifications;

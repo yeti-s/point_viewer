@@ -21,6 +21,7 @@ const REMOVE_CLIPPING_VOLUME = "remove_clipping_volume";
 const REMOVE_CLIPPING_VOLUMES = "remove_clipping_volumes";
 const SET_CLIP_TASK = "set_clip_task";
 
+const SET_INTENSITY_THRESHOLD = "set_intensity_threshold";
 
 
 
@@ -99,7 +100,12 @@ export const init = id => {
 
     MANAGER.register(SET_CLIP_TASK, (task) => {
         viewer.setClipTask(task);
+        console.log(viewer);
     })
+
+    MANAGER.register(SET_INTENSITY_THRESHOLD, (threshold) => {
+        viewer.setFilterIntensity(threshold);
+    });
 }
 
 // export const destroy = () => {
@@ -156,4 +162,8 @@ export const getPointSize = (size) => {
 export const setPointSize = (size) => {
     REF.pointSize = size;
     MANAGER.notify(SET_POINT_SIZE);
+}
+
+export const setIntensityThreshold = (threshold) => {
+    MANAGER.notify(SET_INTENSITY_THRESHOLD, threshold);
 }
