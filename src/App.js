@@ -1,7 +1,7 @@
 import logo from './logo.svg';
 import './App.css';
 
-import PotreeCanvas from './components/PotreeCanvas';
+import PotreeCanvas from './components/PotreeViewer/PotreeCanvas';
 
 function App() {
   return (

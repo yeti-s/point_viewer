@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { initPotree } from "../utils/pointcloud";
+import { init, loadPointCloud, destroy } from "src/utils/pointcloud";
+import PotreeContorller from "./PotreeController";
 
 const styles = {
     potree_container: {
@@ -12,7 +13,10 @@ const styles = {
     },
     potree_render_area: {
         width: '100%',
-        height: '100%'
+        height: '100%',
+        position: 'absolute',
+        top: 0,
+        left: 0
     }
 }
 
@@ -20,15 +24,14 @@ const styles = {
 export default function PotreeCanvas() {
     const [isInit, setIsInit] = useState(false);
     useEffect(()=>{
-        if (isInit) return;
-        initPotree('potree_render_area');
-        setIsInit(true);
-    },[isInit])
+        init('potree_render_area');
+    },[])
 
     return(
         <div id="potree_container" style={styles.potree_container}>
+            <PotreeContorller/>
             <div id="potree_render_area" style={styles.potree_render_area}></div>
-		    <div id="potree_sidebar_container"></div>
+		    {/* <div id="potree_sidebar_container"></div> */}
         </div>
     )
 };
