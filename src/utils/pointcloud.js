@@ -52,9 +52,9 @@ export const init = id => {
     REF.rendererId = id;
     REF.viewer = viewer;
     REF.pointSize = 1.0;
+    REF.pointclouds = {};
+    REF.volumes = {};
 
-    const pointclouds = {};
-    const volumes = {};
     const scene = viewer.scene;
     const msScene = viewer.measuringTool.scene;
     const pcdScene = viewer.scene.scenePointCloud;
@@ -75,11 +75,11 @@ export const init = id => {
             MANAGER.unregister(setPointSizeEventId);
             MANAGER.unregister(removeEventId);
             pcdScene.remove(pcd);
-            delete pointclouds[uuid];
+            delete REF.pointclouds[uuid];
         });
         
         pcd.material.size = REF.pointSize;
-        pointclouds[uuid] = pcd;
+        REF.pointclouds[uuid] = pcd;
         viewer.scene.addPointCloud(pcd);
         viewer.zoomTo(pcd);
     })
@@ -90,12 +90,12 @@ export const init = id => {
         
         const eventId = MANAGER.register(REMOVE_CLIPPING_VOLUME, id => {
             if (id !== uuid) return;
-            scene.removeVolume(volumes[uuid]);
-            delete volumes[uuid];
+            scene.removeVolume(REF.volumes[uuid]);
+            delete REF.volumes[uuid];
             MANAGER.unregister(eventId);
         });
 
-        volumes[uuid] = volume;
+        REF.volumes[uuid] = volume;
     })
 
     MANAGER.register(SET_CLIP_TASK, (task) => {
@@ -166,4 +166,8 @@ export const setPointSize = (size) => {
 
 export const setIntensityThreshold = (threshold) => {
     MANAGER.notify(SET_INTENSITY_THRESHOLD, threshold);
+}
+
+export const getVolumeMatrix = (id) => {
+    return REF.volumes[id].matrix;
 }
