@@ -7,6 +7,9 @@
 #include <opencv4/opencv2/core.hpp>
 #include <opencv4/opencv2/core/mat.hpp>
 #include <nlohmann/json.hpp>
+#include "TaskPool.hpp"
+
+#define THREAD_NUM 10
 
 using namespace std;
 
@@ -232,17 +235,27 @@ public:
                 it->setLasHeader(header);
             }
 
+            struct Task {
+                ClipBox *clipBox;
+                vector<liblas::Point> points;
+            };
+            auto processor = [](shared_ptr<Task> task) {
+                task->clipBox->addPoints(task->points);
+            };
+            TaskPool<Task> pool(THREAD_NUM, processor);
+
             uint numPoints = header.GetPointRecordsCount();
             uint i = 0;
             vector<liblas::Point> points;
             while(reader.ReadNextPoint()) {
 
-                if ((i+1) % 10000 == 0) {
-                    vector<liblas::Point> cPoints;
-                    cPoints.assign(points.begin(), points.end());
-
+                if ((i+1) % 100000 == 0) {
+                    pool.waitTillEmpty();
                     for (auto it = this->boxes.begin(); it != this->boxes.end(); it++) {
-                        it->addPoints(cPoints);
+                        shared_ptr<Task> task = make_shared<Task>();
+                        task->clipBox = &(*it);
+                        task->points = points;
+                        pool.addTask(task);
                     }
                     points.clear();
                 }
@@ -252,14 +265,16 @@ public:
             }
 
             if (points.size() > 0) {
-                vector<liblas::Point> cPoints;
-                cPoints.assign(points.begin(), points.end());
-
+                pool.waitTillEmpty();
                 for (auto it = this->boxes.begin(); it != this->boxes.end(); it++) {
-                    it->addPoints(cPoints);
+                        shared_ptr<Task> task = make_shared<Task>();
+                        task->clipBox = &(*it);
+                        task->points = points;
+                    pool.addTask(task);
                 }
-                points.clear();
             }
+            pool.waitTillEmpty();
+            pool.close();
 
         } catch(exception &e)
         {
