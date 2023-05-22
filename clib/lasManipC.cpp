@@ -109,8 +109,66 @@ public:
                 if (z > this->max[2]) this->max[2] = z;
             }
         }
+    }
 
-        
+    void addPoints(vector<liblas::Point> points) {
+        int size = points.size();
+        // create batch
+        cv::Mat pointMat = cv::Mat::ones(4, size, CV_64F);
+        for (int i = 0; i < size; i++) {
+            auto point = points[i];
+            pointMat.at<double>(0, i) = point.GetX();
+            pointMat.at<double>(1, i) = point.GetY();
+            pointMat.at<double>(2, i) = point.GetZ();
+        }
+        cv::Mat result = this->matrix * pointMat;
+
+        for (int i = 0; i < size; i++) {
+            double cx = result.at<double>(0, i);
+            double cy = result.at<double>(1, i);
+            double cz = result.at<double>(2, i);
+
+            if (cx <= 0.5 && cx >= -0.5 && cy <= 0.5 && cy >= -0.5 && cz <= 0.5 && cz >= -0.5) // inner point
+            {
+                liblas::Point point = points[i];
+                this->lasWriter->WritePoint(point);
+                this->numPoints++;
+
+
+                double x = point.GetX();
+                double y = point.GetY();
+                double z = point.GetZ();
+                double intensity = point.GetIntensity();
+
+                if (intensity >= this->threshold)
+                {
+                    this->numLabelPoints++;
+                    if (this->writeLabelLas) this->labelWriter->WritePoint(point);
+
+                    if (cx < this->cmin[0]) {
+                        this->cmin[0] = cx;
+                        this->min[0] = x;
+                    }
+                    if (cx > this->cmax[0]) {
+                        this->cmax[0] = cx;
+                        this->max[0] = x;
+                    }
+                    if (cy < this->cmin[1]) {
+                        this->cmin[1] = cy;
+                        this->min[1] = y;
+                    }
+                    if (cy > this->cmax[1]) {
+                        this->cmax[1] = cy;
+                        this->max[1] = y;
+                    }
+                    if (z < this->min[2]) this->min[2] = z;
+                    if (z > this->max[2]) this->max[2] = z;
+                }
+            }
+        }
+
+
+
     }
 
     nlohmann::json exportData() {
@@ -176,16 +234,33 @@ public:
 
             uint numPoints = header.GetPointRecordsCount();
             uint i = 0;
+            vector<liblas::Point> points;
             while(reader.ReadNextPoint()) {
-                if ((i+1) % 100000 == 0) 
-                    cout << "(" << i+1 << "/" << numPoints << ") processing." << endl;
 
-                auto point = reader.GetPoint();
-                for (auto it = this->boxes.begin(); it != this->boxes.end(); it++) {
-                    it->addPoint(point);
+                if ((i+1) % 10000 == 0) {
+                    vector<liblas::Point> cPoints;
+                    cPoints.assign(points.begin(), points.end());
+
+                    for (auto it = this->boxes.begin(); it != this->boxes.end(); it++) {
+                        it->addPoints(cPoints);
+                    }
+                    points.clear();
                 }
+
+                points.push_back(reader.GetPoint());
                 i++;
             }
+
+            if (points.size() > 0) {
+                vector<liblas::Point> cPoints;
+                cPoints.assign(points.begin(), points.end());
+
+                for (auto it = this->boxes.begin(); it != this->boxes.end(); it++) {
+                    it->addPoints(cPoints);
+                }
+                points.clear();
+            }
+
         } catch(exception &e)
         {
             cerr << "LAS 파일 변환 실패: " << e.what() << endl;
@@ -206,15 +281,6 @@ public:
     }
 };
 
-
-// liblas::Writer *test(liblas::Header header, liblas::Point point) {
-//     ofstream *outlas = new ofstream("/mnt/c/Users/yeti/Documents/github/data/paris/las/test.las", std::ios::binary);
-//     liblas::Writer *writer = new liblas::Writer(*outlas, header);
-//     writer->WritePoint(point);
-
-//     return writer;
-// }
-
 int main(int argc, char **argv)
 {
     if (argc < 2)
@@ -222,12 +288,6 @@ int main(int argc, char **argv)
         cout << "input your json file!" << endl;
         return 1;
     }
-
-    // liblas::Header header;
-    // liblas::Point point(&header);
-    // auto writer = test(header, point);
-    // writer->WritePoint(point);
-
 
     string jsonPath(argv[1]);
     ifstream jsonFile(jsonPath);
