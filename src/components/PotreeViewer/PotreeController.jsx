@@ -11,6 +11,7 @@ import {
     getVolumeMatrix
 } from "src/utils/pointcloud";
 import SliderWithText from "src/components/slider/SliderWithText";
+import { getIntensityThreshold } from "../../utils/pointcloud";
 
 const styles = {
     controllerContainer: {
@@ -25,9 +26,11 @@ const styles = {
 export default function PotreeContorller() {
     const [clip, setClip] = useState(false);
     const [path, setPath] = useState("");
+    const [json, setJson] = useState();
 
     const load = () => {
         loadPointCloud(`http://localhost:10001/file?path=${path}`);
+        setJson({lasPath: path, boxes:[]});
     }
 
     const toggleClip = () => {
@@ -59,12 +62,28 @@ export default function PotreeContorller() {
         setIntensityThreshold(value);
     }
 
-    const getMatrix = () => {
-        console.log("matrix", getVolumeMatrix(clip));
-    }
-
     const testChange = (event) => {
         setPath(event.target.value);
+    }
+
+    const check = () => {
+        let box = {
+            intensity: getIntensityThreshold(),
+            matrix: getVolumeMatrix(clip).elements
+        }
+        json.boxes.push(box);
+        setJson(Object.assign({}, json));
+    }
+    
+    const exportJson = () => {
+        const blob = new Blob([JSON.stringify(json)], {type: 'text/plain'});
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = `exported.json`
+        a.click()
+        a.remove()
+        window.URL.revokeObjectURL(url);
     }
 
     return (
@@ -76,7 +95,8 @@ export default function PotreeContorller() {
             <button onClick={toggleClip}>{clip ? "unclip" : "clip"}</button>
             <button onClick={inside}>inside</button>
             <button onClick={highlight}>highlight</button>
-            <button onClick={getMatrix}>matrix</button>
+            <button onClick={check}>check</button>
+            <button onClick={exportJson}>export</button>
         </div>
     )
 }

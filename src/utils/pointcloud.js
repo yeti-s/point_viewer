@@ -54,6 +54,7 @@ export const init = id => {
     REF.pointSize = 1.0;
     REF.pointclouds = {};
     REF.volumes = {};
+    REF.intensity = 1;
 
     const scene = viewer.scene;
     const msScene = viewer.measuringTool.scene;
@@ -100,11 +101,11 @@ export const init = id => {
 
     MANAGER.register(SET_CLIP_TASK, (task) => {
         viewer.setClipTask(task);
-        console.log(viewer);
     })
 
     MANAGER.register(SET_INTENSITY_THRESHOLD, (threshold) => {
         viewer.setFilterIntensity(threshold);
+        REF.intensity = threshold;
     });
 }
 
@@ -168,6 +169,10 @@ export const setIntensityThreshold = (threshold) => {
     MANAGER.notify(SET_INTENSITY_THRESHOLD, threshold);
 }
 
+export const getIntensityThreshold = () => {
+    return REF.intensity;
+}
+
 export const getVolumeMatrix = (id) => {
-    return REF.volumes[id].matrix;
+    return REF.volumes[id].matrix.clone();
 }
